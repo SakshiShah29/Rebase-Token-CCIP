@@ -69,7 +69,8 @@ contract Vault {
      */
     function deposit() external payable amountMoreThanZero(msg.value) {
         //use the amount of the eth that the user has sent to mint the rebase token
-        i_rebaseToken.mint(msg.sender, msg.value);
+        uint256 interestRate = i_rebaseToken.getInterestRate();
+        i_rebaseToken.mint(msg.sender, msg.value, interestRate);
         emit Deposit(msg.sender, msg.value);
     }
 
@@ -79,6 +80,9 @@ contract Vault {
      *@dev: The function burns the rebase tokens from the user and sends them the equivalent amount of eth.
      */
     function redeem(uint256 amount) external amountMoreThanZero(amount) {
+        if (amount == type(uint256).max) {
+            amount = i_rebaseToken.balanceOf(msg.sender); //if the user wants to redeem all their tokens, set the amount to their balance
+        }
         //burn the rebase token from the user
         i_rebaseToken.burn(msg.sender, amount);
         (bool success, ) = payable(msg.sender).call{value: amount}(""); //send the user the amount of eth equal to the amount of rebase token burned

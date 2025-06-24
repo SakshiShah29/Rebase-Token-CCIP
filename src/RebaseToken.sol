@@ -41,14 +41,13 @@ contract RebaseToken is ERC20, Ownable, AccessControl {
     );
 
     // State variables
+    uint256 private constant PRECISION_FACTOR = 1e18; // 18 decimal places
+    bytes32 private constant MINT_AND_BURN_ROLE =
+        keccak256("MINT_AND_BURN_ROLE");
     uint256 private s_interestRate = 5e10; // 0.0000000005% per sec
     mapping(address userAddress => uint256 newInterestRateForUser)
         private s_userInterestRate; // User specific interest rate
     mapping(address => uint256) private s_userLastUpdatedTimestamp;
-
-    uint256 private constant PRECISION_FACTOR = 1e18; // 18 decimal places
-    bytes32 private constant MINT_AND_BURN_ROLE =
-        keccak256("MINT_AND_BURN_ROLE");
 
     // Events
     event InterestRateSet(uint256 newInterestRate);
@@ -84,10 +83,11 @@ contract RebaseToken is ERC20, Ownable, AccessControl {
      */
     function mint(
         address to,
-        uint256 amount
+        uint256 amount,
+        uint256 userInterestRate
     ) external onlyRole(MINT_AND_BURN_ROLE) {
         mintAccuredInterest(to);
-        s_userInterestRate[to] = s_interestRate;
+        s_userInterestRate[to] = userInterestRate;
         _mint(to, amount);
     }
 
@@ -101,9 +101,6 @@ contract RebaseToken is ERC20, Ownable, AccessControl {
         address from,
         uint256 amount
     ) external onlyRole(MINT_AND_BURN_ROLE) {
-        if (amount == type(uint256).max) {
-            amount = balanceOf(from);
-        }
         mintAccuredInterest(from);
         _burn(from, amount);
     }
@@ -120,11 +117,11 @@ contract RebaseToken is ERC20, Ownable, AccessControl {
         address recipient,
         uint256 amount
     ) public override returns (bool) {
-        mintAccuredInterest(msg.sender);
-        mintAccuredInterest(recipient);
         if (amount == type(uint256).max) {
             amount = balanceOf(msg.sender);
         }
+        mintAccuredInterest(msg.sender);
+        mintAccuredInterest(recipient);
         if (balanceOf(recipient) == 0 && amount > 0) {
             s_userInterestRate[recipient] = s_userInterestRate[msg.sender]; //inherit interest rate
         }
@@ -164,12 +161,16 @@ contract RebaseToken is ERC20, Ownable, AccessControl {
      *@dev: The balance is calculated by adding the principle balance and the accrued interest since the last update.
      *@return uint256: The total balance of the user including the accrued interest.
      */
-    function balanceOf(address user) public view override returns (uint256) {
-        //get the principle balance first
-        //number of tokens that need to be minted = principle balance * interest rate * time since last update
+    function balanceOf(address _user) public view override returns (uint256) {
+        //current principal balance of the user
+        uint256 currentPrincipalBalance = super.balanceOf(_user);
+        if (currentPrincipalBalance == 0) {
+            return 0;
+        }
+        // shares * current accumulated interest for that user since their interest was last minted to them.
         return
-            super.balanceOf(user) +
-            calculateAccumulatedInterestSinceLastUpdate(user) /
+            (currentPrincipalBalance *
+                _calculateUserAccumulatedInterestSinceLastUpdate(_user)) /
             PRECISION_FACTOR;
     }
 
@@ -179,21 +180,15 @@ contract RebaseToken is ERC20, Ownable, AccessControl {
      *@dev: The interest is calculated by multiplying the user's balance with the interest rate and the time elapsed since the last update.
      *@return uint256: The accumulated interest for the user.
      */
-    function calculateAccumulatedInterestSinceLastUpdate(
+    function _calculateUserAccumulatedInterestSinceLastUpdate(
         address user
     ) internal view returns (uint256 linearInterest) {
-        //calculate the time since the last update
-        //calculate the amount of linear growth
-
-        uint256 timeElapsed = block.timestamp -
+        uint256 timeDifference = block.timestamp -
             s_userLastUpdatedTimestamp[user];
-        if (timeElapsed == 0 || s_userInterestRate[user] == 0) {
-            return PRECISION_FACTOR;
-        }
-        uint256 fractionalInterest = s_userInterestRate[user] * timeElapsed;
-
-        linearInterest = PRECISION_FACTOR + fractionalInterest;
-        return linearInterest;
+        // represents the linear growth over time = 1 + (interest rate * time)
+        linearInterest =
+            (s_userInterestRate[user] * timeDifference) +
+            PRECISION_FACTOR;
     }
 
     /*
@@ -234,5 +229,14 @@ contract RebaseToken is ERC20, Ownable, AccessControl {
 
     function getPrecisionFactor() external pure returns (uint256) {
         return PRECISION_FACTOR;
+    }
+
+    function getUserLastUpdatedTimestamp(
+        address userAddress
+    ) external view returns (uint256) {
+        return s_userLastUpdatedTimestamp[userAddress];
+    }
+    function getMintAndBurnRole() external pure returns (bytes32) {
+        return MINT_AND_BURN_ROLE;
     }
 }
