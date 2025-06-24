@@ -24,7 +24,7 @@
 pragma solidity ^0.8.20;
 import {TokenPool} from "@ccip/contracts/src/v0.8/ccip/pools/TokenPool.sol";
 import {Pool} from "@ccip/contracts/src/v0.8/ccip/libraries/Pool.sol";
-import {IERC20} from "@ccip/contracts/src/v0.8/vendor/openzeppelin-solidity/v5.0.2/contracts/token/ERC20/IERC20.sol";
+import {IERC20} from "@ccip/contracts/src/v0.8/vendor/openzeppelin-solidity/v4.8.3/contracts/token/ERC20/IERC20.sol";
 import {IRebaseToken} from "./Interfaces/IRebaseToken.sol";
 
 contract RebaseTokenPool is TokenPool {
@@ -33,7 +33,7 @@ contract RebaseTokenPool is TokenPool {
         address[] memory allowlist,
         address rnmProxy,
         address router
-    ) TokenPool(IERC20(address(token)), allowlist, rnmProxy, router) {}
+    ) TokenPool(token, allowlist, rnmProxy, router) {}
 
     function lockOrBurn(
         Pool.LockOrBurnInV1 calldata lockOrBurnIn
