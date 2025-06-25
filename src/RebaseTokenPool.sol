@@ -31,9 +31,9 @@ contract RebaseTokenPool is TokenPool {
     constructor(
         IERC20 token,
         address[] memory allowlist,
-        address rnmProxy,
+        address rmnProxy,
         address router
-    ) TokenPool(token, allowlist, rnmProxy, router) {}
+    ) TokenPool(token, allowlist, rmnProxy, router) {}
 
     function lockOrBurn(
         Pool.LockOrBurnInV1 calldata lockOrBurnIn
