@@ -146,7 +146,6 @@ contract CrossChain is Test {
         //   }
         console.log("Configuring pool on fork", fork);
         console.log("Remote token address:", remoteTokenAddress);
-        console.logBytes(abi.encodePacked(remoteTokenAddress));
         chainUpdates[0] = TokenPool.ChainUpdate({
             remoteChainSelector: remoteChainSelector,
             allowed: true,
@@ -276,6 +275,20 @@ contract CrossChain is Test {
             arbSepoliaNetworkDetails,
             sepoliaToken,
             arbSepoliaToken
+        );
+
+        //Bridge tokens back from arb-sepolia to sepolia
+        vm.selectFork(arbSepoliaFork);
+        vm.warp(block.timestamp + 900); // Ensure the block timestamp is updated to allow processing of the message
+
+        bridgeTokens(
+            arbSepoliaToken.balanceOf(user),
+            arbSepoliaFork,
+            sepoliaFork,
+            arbSepoliaNetworkDetails,
+            sepoliaNetworkDetails,
+            arbSepoliaToken,
+            sepoliaToken
         );
     }
 }

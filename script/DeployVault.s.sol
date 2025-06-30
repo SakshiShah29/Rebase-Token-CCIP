@@ -18,6 +18,8 @@ contract DeployVault is Script {
 
         vm.startBroadcast(deployerPrivateKey);
         Vault vault = new Vault(IRebaseToken(address(rebaseToken)));
+
+      IRebaseToken(address(rebaseToken)).grantMintAndBurnRole(address(vault));
         // rebaseToken.transferOwnership(address(vault));
         vm.stopBroadcast();
         return (vault, rebaseToken, helperConfig);
