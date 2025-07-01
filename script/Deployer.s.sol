@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.24;
 
-import {Script} from "forge-std/Script.sol";
+import {Script,console} from "forge-std/Script.sol";
 import {Vault} from "../src/Vault.sol";
 import {IRebaseToken} from "../src/Interfaces/IRebaseToken.sol";
 import {RebaseToken} from "../src/RebaseToken.sol";
@@ -40,6 +40,8 @@ contract TokenAndPoolDeployer is Script {
             address(pool)
         );
         vm.stopBroadcast();
+        console.log("token: contract RebaseToken", address(rebaseToken));
+        console.log("pool: contract RebaseTokenPool", address(pool));
     }
 }
 
